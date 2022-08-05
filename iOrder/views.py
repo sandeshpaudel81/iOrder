@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-
+from decimal import Decimal
 from iOrder.models import *
 from rest_framework import status
 
@@ -37,14 +37,15 @@ def createOrderWithQR(request, qr):
         table = Table.objects.get(id=tableId)
         if table:
             if table.isReserved:
-                return Response({'detail': 'Table is full.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'Table is full.'})
             else:
                 order = Order.objects.create(table=table)
                 table.isReserved = True
+                table.save()
                 serializer = OrderSerializerAfterQR(order, many=False)
                 return Response(serializer.data)
     except:
-        return Response({'detail': 'Invalid QR Code'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Invalid QR Code'})
 
 
 @api_view(['GET'])
@@ -65,15 +66,16 @@ def addOrderItems(request, code):
         else:
             # (3) Create orderItem objects and set order to orderItems relationship
             for i in orderItems:
-                fooditem = FoodItem.objects.get(_id=i['fooditem'])
+                fooditem = FoodItem.objects.get(id=i['fooditem'])
                 item = OrderItem.objects.create(
                     order=order,
                     food=fooditem,
                     name=fooditem.name,
                     quantity = i['qty'],
-                    price=i['price'],
+                    price= i['price'],
                 )
-                order.totalPrice += float(i['price'])
+                order.totalPrice += Decimal(i['price'])
+                order.save()
                 # (4) Update countInStock of product
             serializer = OrderSerializer(order, many=False)
             return Response(serializer.data)

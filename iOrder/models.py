@@ -87,7 +87,7 @@ def create_orderCode():
 
 class Order(models.Model):
     # restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, null=True, blank=True)
-    table = models.OneToOneField(Table, on_delete=models.SET_NULL, null=True, blank=True)
+    table = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True)
     orderCode=models.PositiveIntegerField(unique=True, default=create_orderCode)
     totalPrice = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
