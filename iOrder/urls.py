@@ -9,6 +9,9 @@ urlpatterns = [
     path('create-order/<str:qr>/', views.createOrderWithQR, name="create-order-with-qr"),
     path('confirm-order/<str:code>/', views.addOrderItems, name="add-order-items"),
     path('order/<str:code>/', views.getOrderItems, name="get-order-items"),
-    path('admin/orders/', views.getAllOrdersForAdmin, name="admin-all-orders"),
+    path('payment/<str:code>/', views.addPayment, name="add-payment"),
 
+    path('admin/orders/', views.getAllOrdersForAdmin, name="admin-all-orders"),
+    path('admin/orders/<str:code>/', views.getOrderItems, name="admin-one-order"),
+    path('admin/orders/<str:code>/verify', views.verifyPayment, name="admin-verify-payment")
 ]

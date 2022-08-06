@@ -1,4 +1,4 @@
-from dataclasses import field
+from dataclasses import field, fields
 from rest_framework import serializers
 from iOrder.models import *
 from django.contrib.auth.models import User
@@ -82,3 +82,28 @@ class AllOrderSerializerForAdmin(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
 
+
+class PaymentMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = '__all__'
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = '__all__'
+
+
+class OrderSerializerwithTransaction(OrderSerializer):
+    transaction = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'table', 'orderCode', 'totalPrice', 'createdAt', 'isPaid', 'isAllDelivered', 'items', 'paymentStatus', 'transaction']
+
+    def get_transaction(self, obj):
+        order = Order.objects.get(id=self.id)
+        transaction = Transaction.objects.get(order=order)
+        serializer = TransactionSerializer(transaction, many=False)
+        return serializer.data

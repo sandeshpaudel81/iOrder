@@ -5,8 +5,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from decimal import Decimal
 from iOrder.models import *
 from rest_framework import status
+import json
 
-from iOrder.serializers import OrderSerializerAfterQR, MenuSerializer, OrderSerializer, UserSerializerWithToken, AllOrderSerializerForAdmin
+from iOrder.serializers import OrderSerializerAfterQR, MenuSerializer, OrderSerializer, UserSerializerWithToken, AllOrderSerializerForAdmin, PaymentMethodSerializer, OrderSerializerwithTransaction
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -58,29 +59,72 @@ def getOrderItems(request, code):
 @api_view(['POST'])
 def addOrderItems(request, code):
     order = Order.objects.get(orderCode=code)
-    data = request.data
+    data = json.loads(request.data)
     orderItems = data['orderItems']
     if order.isActive:
         if orderItems and len(orderItems)==0:
-            return Response({'detail':'No Order Items'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail':'No Order Items'})
         else:
             # (3) Create orderItem objects and set order to orderItems relationship
             for i in orderItems:
-                fooditem = FoodItem.objects.get(id=i['fooditem'])
-                item = OrderItem.objects.create(
+                fooditem = FoodItem.objects.get(id=int(i['fooditem']))
+                newitem = OrderItem.objects.create(
                     order=order,
                     food=fooditem,
                     name=fooditem.name,
                     quantity = i['qty'],
-                    price= i['price'],
+                    price= int(i['qty'])*fooditem.price,
                 )
-                order.totalPrice += Decimal(i['price'])
+                order.totalPrice += Decimal(newitem.price)
                 order.save()
-                # (4) Update countInStock of product
             serializer = OrderSerializer(order, many=False)
             return Response(serializer.data)
     else:
-        return Response({'detail':'No order found'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail':'No order found'})
+
+
+@api_view(['GET'])
+def getPaymentMethods(request, code):
+    order = Order.objects.get(orderCode=code)
+    if order.isActive:
+        allMethods = Payment.objects.all()
+        serializer = PaymentMethodSerializer(allMethods, many=True)
+        return Response(serializer.data)
+    else:
+        return Response({'detail':'No order found'})
+
+
+@api_view(['POST'])
+def addPayment(request, code):
+    order = Order.objects.get(orderCode=code)
+    data = request.data
+    paymentMethodId = data["paymentMethodId"]
+    if order.isActive:
+        order.paymentStatus = "Pending"
+        order.save()
+        Transaction.objects.create(
+            order=order,
+            payment=Payment.objects.get(id=paymentMethodId),
+            amount=order.totalPrice
+        )
+        serializer = OrderSerializerwithTransaction(order, many=False)
+        return Response(serializer.data)
+    else:
+        return Response({'detail':'No order found'})
+
+
+@api_view(['GET'])
+def verifyPayment(request, code):
+    order = Order.objects.get(orderCode=code)
+    data = request.data
+    if order.isActive:
+        order.paymentStatus = "Success"
+        order.isPaid = True
+        order.save()
+        serializer = OrderSerializerwithTransaction(order, many=False)
+        return Response(serializer.data)
+    else:
+        return Response({'detail':'No order found'})
 
 
 @api_view(['GET'])
@@ -88,3 +132,17 @@ def getAllOrdersForAdmin(request):
     allorders = Order.objects.filter(isActive=True)
     serializer = AllOrderSerializerForAdmin(allorders, many=True)
     return Response(serializer.data)
+
+
+    # {
+    #     "orderItems": [
+    #         {
+    #             "qty": 2,
+    #             "fooditem": 1
+    #         },
+    #         {
+    #             "qty": 2,
+    #             "fooditem": 2
+    #         }
+    #     ]
+    # }
