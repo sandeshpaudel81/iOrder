@@ -53,8 +53,16 @@ def createOrderWithQR(request, qr):
 def getOrderItems(request, code):
     try:
         order = Order.objects.get(orderCode=code)
-        serializer = OrderSerializer(order, many=False)
-        return Response(serializer.data)
+        if order.isActive:
+            try:
+                transaction = Transaction.objects.get(order=order)
+                serializer = OrderSerializerwithTransaction(order, many=False)
+                return Response(serializer.data)
+            except Transaction.DoesNotExist:
+                serializer = OrderSerializer(order, many=False)
+                return Response(serializer.data)
+        else:
+            return Response({'detail': 'No Order Found'})
     except:
         return Response({'detail': 'No Order Found'})
 

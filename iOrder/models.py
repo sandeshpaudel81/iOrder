@@ -123,4 +123,4 @@ class Transaction(models.Model):
     transactionAt = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.transactionAt
+        return str(self.transactionAt)

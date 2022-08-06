@@ -104,10 +104,9 @@ class OrderSerializerwithTransaction(OrderSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'table', 'orderCode', 'totalPrice', 'createdAt', 'isPaid', 'isAllDelivered', 'items', 'paymentStatus', 'transaction']
+        fields = ['id', 'table', 'table_name', 'orderCode', 'totalPrice', 'createdAt', 'isPaid', 'isAllDelivered', 'paymentStatus', 'items', 'transaction']
 
     def get_transaction(self, obj):
-        order = Order.objects.get(id=self.id)
-        transaction = Transaction.objects.get(order=order)
+        transaction = Transaction.objects.get(order=obj)
         serializer = TransactionSerializer(transaction, many=False)
         return serializer.data
