@@ -66,15 +66,19 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = serializers.SerializerMethodField(read_only=True)
+    table_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Order
-        fields = ['id', 'table', 'orderCode', 'totalPrice', 'createdAt', 'isPaid', 'isAllDelivered', 'items']
+        fields = ['id', 'table', 'table_name', 'orderCode', 'totalPrice', 'createdAt', 'isPaid', 'isAllDelivered', 'items']
 
     def get_items(self, obj):
         items = obj.orderitem_set.all()
         serializer = OrderItemSerializer(items, many=True)
         return serializer.data
+
+    def get_table_name(self, obj):
+        return obj.table.name
 
 
 class AllOrderSerializerForAdmin(serializers.ModelSerializer):
