@@ -14,5 +14,6 @@ urlpatterns = [
 
     path('admin/orders/', views.getAllOrdersForAdmin, name="admin-all-orders"),
     path('admin/orders/<str:code>/', views.getOrderItems, name="admin-one-order"),
-    path('admin/orders/<str:code>/verify', views.verifyPayment, name="admin-verify-payment")
+    path('admin/orders/<str:code>/verify', views.verifyPayment, name="admin-verify-payment"),
+    path('admin/orders/<str:code>/close', views.closeOrder, name="admin-close-order")
 ]

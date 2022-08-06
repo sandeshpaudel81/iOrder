@@ -1,3 +1,4 @@
+from django.shortcuts import redirect
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -115,18 +116,23 @@ def getPaymentMethods(request, code):
 @api_view(['POST'])
 def addPayment(request, code):
     order = Order.objects.get(orderCode=code)
-    data = request.data
-    paymentMethodId = data["paymentMethodId"]
+    data = json.loads(request.data)
+    paymentMethodId = data["id"]
     if order.isActive:
-        order.paymentStatus = "Pending"
-        order.save()
-        Transaction.objects.create(
-            order=order,
-            payment=Payment.objects.get(id=paymentMethodId),
-            amount=order.totalPrice
-        )
-        serializer = OrderSerializerwithTransaction(order, many=False)
-        return Response(serializer.data)
+        try:
+            transaction = Transaction.objects.get(order=order)
+            return Response({'detail':'Error! Payment Already Done.'})
+        except:
+            order.paymentStatus = "Pending"
+            order.save()
+            Transaction.objects.create(
+                order=order,
+                payment=Payment.objects.get(id=paymentMethodId),
+                amount=order.totalPrice
+            )
+            # serializer = OrderSerializerwithTransaction(order, many=False)
+            # return Response(serializer.data)
+            return redirect('/api/order/'+str(code))
     else:
         return Response({'detail':'No order found'})
 
@@ -136,7 +142,7 @@ def verifyPayment(request, code):
     order = Order.objects.get(orderCode=code)
     if order.isActive:
         order.paymentStatus = "Success"
-        order.isPaid = True
+        # order.isPaid = True
         order.save()
         serializer = OrderSerializerwithTransaction(order, many=False)
         return Response(serializer.data)
@@ -149,9 +155,11 @@ def closeOrder(request, code):
     order = Order.objects.get(orderCode=code)
     if order.isActive:
         order.isActive = False
-        order.table.isReserved = False
+        table = Table.objects.get(id=order.table.id)
+        table.isReserved = False
+        table.save()
         order.save()
-        return Response({'detail':''})
+        return Response({'detail':'Order Closed. Visit again.'})
     else:
         return Response({'detail':'No order found'})
 

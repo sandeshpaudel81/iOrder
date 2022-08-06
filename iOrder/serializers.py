@@ -3,6 +3,7 @@ from rest_framework import serializers
 from iOrder.models import *
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
+from datetime import timedelta
 
 class UserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField(read_only=True)
@@ -70,7 +71,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'table', 'table_name', 'orderCode', 'totalPrice', 'createdAt', 'isPaid', 'isAllDelivered', 'items']
+        fields = ['id', 'table', 'table_name', 'orderCode', 'totalPrice', 'createdAt', 'isAllDelivered', 'items']
 
     def get_items(self, obj):
         items = obj.orderitem_set.all()
@@ -94,9 +95,19 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    payment_method = serializers.SerializerMethodField(read_only=True)
+    transaction_datetime = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Transaction
-        fields = '__all__'
+        fields = ['id', 'order', 'payment', 'payment_method', 'amount', 'transaction_datetime']
+
+    def get_payment_method(self, obj):
+        return obj.payment.method
+
+    def get_transaction_datetime(self, obj):
+        datetime = obj.transactionAt+timedelta(minutes=345)
+        return datetime.strftime("%Y %B %d, %I:%M:%S %p")
 
 
 class OrderSerializerwithTransaction(OrderSerializer):
@@ -104,7 +115,7 @@ class OrderSerializerwithTransaction(OrderSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'table', 'table_name', 'orderCode', 'totalPrice', 'createdAt', 'isPaid', 'isAllDelivered', 'paymentStatus', 'items', 'transaction']
+        fields = ['id', 'table', 'table_name', 'orderCode', 'totalPrice', 'createdAt', 'isAllDelivered', 'paymentStatus', 'items', 'transaction']
 
     def get_transaction(self, obj):
         transaction = Transaction.objects.get(order=obj)
